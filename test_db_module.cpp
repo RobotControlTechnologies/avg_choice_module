@@ -1,18 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <map>
-
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <stdint.h>
-#include <unistd.h>
-#include <cstdarg>
-#include <cstddef>
-#endif
+#include <stdarg.h>
 
 #include "module.h"
-#include "robot_module.h"
 #include "db_module.h"
 
 #include "test_db_module.h"
@@ -52,8 +42,29 @@ void TestDBModule::final() {
 
 int TestDBModule::startProgram(int uniq_index) { return 0; }
 
-RobotData **TestDBModule::makeChoise(RobotData** robots_data, unsigned int count_robots) {
-  return robots_data;
+const DBRobotData *TestDBModule::makeChoise(const DBFunctionData** function_data, unsigned int count_functions, const DBRobotData** robots_data, unsigned int count_robots) {
+  /*colorPrintf(ConsoleColor(ConsoleColor::gray), "Total functions: %d\n", count_functions);
+  for (unsigned int i = 0; i < count_functions; ++i) {
+    colorPrintf(ConsoleColor(ConsoleColor::gray), "  function: %d\n", i + 1);
+    const DBFunctionData *db_fd = function_data[i];
+      colorPrintf(ConsoleColor(ConsoleColor::gray), "    name: %s\n", db_fd->name);
+      colorPrintf(ConsoleColor(ConsoleColor::gray), "    context_hash: %s\n", db_fd->context_hash);
+      colorPrintf(ConsoleColor(ConsoleColor::gray), "    position: %d\n", db_fd->position);
+      colorPrintf(ConsoleColor(ConsoleColor::gray), "    call_type: %d\n", db_fd->call_type);
+  }
+  colorPrintf(ConsoleColor(ConsoleColor::gray), "Total robots: %d\n", count_robots);
+  for (unsigned int i = 0; i < count_robots; ++i) {
+    const DBRobotData *db_rd = robots_data[i];
+    colorPrintf(ConsoleColor(ConsoleColor::gray), "  %d. %s\n", i + 1, db_rd->robot_uid);
+  }*/
+
+  if (!count_robots) {
+    return NULL;
+  }
+  if (count_robots >= 3) {
+    return robots_data[2];
+  }
+  return robots_data[count_robots-1];
 }
 
 int TestDBModule::endProgram(int uniq_index) { return 0; }
@@ -71,7 +82,7 @@ void TestDBModule::colorPrintf(ConsoleColor colors, const char *mask, ...) {
 }
 
 PREFIX_FUNC_DLL unsigned short getDBModuleApiVersion() {
-  return ROBOT_MODULE_API_VERSION;
+  return MODULE_API_VERSION;
 };
 PREFIX_FUNC_DLL DBModule *getDBModuleObject() {
   return new TestDBModule();

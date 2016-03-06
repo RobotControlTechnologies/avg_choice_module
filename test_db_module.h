@@ -4,7 +4,7 @@
 class TestDBModule : public DBModule {
   colorPrintfModuleVA_t *colorPrintf_p;
   ModuleInfo *mi;
-  
+
   public:
     TestDBModule();
     // init
@@ -19,11 +19,11 @@ class TestDBModule : public DBModule {
     void final();
 
     // intepreter - program & lib
-    void readPC(void *buffer, unsigned int buffer_length);
+    void readPC(void *buffer, unsigned int buffer_length) {};
 
     // intepreter - program
     int startProgram(int uniq_index);
-    RobotData **makeChoise(RobotData** robots_data, unsigned int count_robots);
+    const DBRobotData *makeChoise(const DBFunctionData** function_data, unsigned int count_functions, const DBRobotData** robots_data, unsigned int count_robots);
     int endProgram(int uniq_index);
 
     // destructor

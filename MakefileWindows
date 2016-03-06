@@ -6,26 +6,29 @@ RM = "C:\MinGW\msys\1.0\bin\rm.exe"
 MKDIR = "C:\MinGW\msys\1.0\bin\mkdir.exe"
 
 BUILD_NUMBER = 0
+API_VERSION = current
+
+SQLITE_DIR = "C:\sqlite"
 
 # Constants
 .PHONY: debug
-debug release: MODULE_HEADERS_DIR = "C:\robot_project\source\module_headers\current"
+
+MODULE_HEADERS_DIR = "C:\Program Files (x86)\Jenkins\workspace\module_headers\${API_VERSION}"
 
 INCLUDE_DIR_FLAGS = -I${MODULE_HEADERS_DIR}
 FLAGS_MUTUAL = -Wall -m32 -std=c++11 ${INCLUDE_DIR_FLAGS} -MMD -MP -MF "${OBJECTDIR}/$@.d" -DBUILD_NUMBER=${BUILD_NUMBER}
 
-debug: OBJECTDIR = build/Debug
-release: OBJECTDIR = build/Release
+debug: OBJECTDIR = build/Debug_${API_VERSION}
+release: OBJECTDIR = build/Release_${API_VERSION}
 
 debug: FLAGS = -g ${FLAGS_MUTUAL}
 release: FLAGS = -O3 ${FLAGS_MUTUAL}
 
-debug debug_000 release release_000: clean module
+debug release: clean module
 
 clean:
 	@echo "-------------------------" 
 	${RM} -rf ${OBJECTDIR}
-
 
 test_db_module.o:  test_db_module.cpp
 	@echo "-------------------------" 
@@ -33,8 +36,7 @@ test_db_module.o:  test_db_module.cpp
 	${RM} -f "${OBJECTDIR}/$@.d"
 	$(COMPILE.cc) $(FLAGS) -o ${OBJECTDIR}/test_db_module.o test_db_module.cpp
 
-
 module: test_db_module.o
 	@echo "-------------------------" 
 	${MKDIR} -p ${OBJECTDIR}
-	${LINK.cc} -shared -m32 -o ${OBJECTDIR}/test_module.dll ${OBJECTDIR}/test_db_module.o
+	${LINK.cc} -shared -m32 -o ${OBJECTDIR}/test_module.dll ${OBJECTDIR}/test_db_module.o ${SQLITE_DIR}/sqlite3.c.obj
