@@ -5,7 +5,6 @@
 #include <stdarg.h>
 #include <sqlite3.h>
 #include <string>
-
 #include "stringC11.h"
 
 /* RCML */
@@ -94,7 +93,7 @@ psqlText.replace(psqlText.find("%FUNCS_CLAUSE%"),14,sTmp);
 sTmp = (string)"";
 if (count_robots) {
     bool havenulluid = false;
-    for (uint i = 0; i <= count_robots - 1; i++) {
+    for (uint i = 0; i < count_robots; i++) {
         if (   *robots_data[i] -> robot_uid == 0
             or *robots_data[i] -> robot_uid == NULL
             or (string)(robots_data[i] -> robot_uid) == (string)"") {
@@ -133,12 +132,12 @@ if( sqlite3_get_table(db, psqlText.c_str(), &pResSQL, &nRow, &nCol, &zErrMsg) !=
    return NULL;
 }
 #ifdef IS_DEBUG
-    colorPrintf(ConsoleColor(ConsoleColor::yellow),"SQL result:\n%s\n\n", pResSQL[1]);    
+    colorPrintf(ConsoleColor(ConsoleColor::yellow),"SQL result:\n%s\n\n", nCol > 0 ? pResSQL[1] : "NULL");
 #endif
 
 const DBRobotData *pRes = NULL;
 if (nCol > 0) {
-for (uint i = 0; i <= count_robots - 1; i++) {
+for (uint i = 0; i < count_robots; i++) {
     if ( (string)(robots_data[i] -> robot_uid) == (string)pResSQL[1]) {
         pRes = robots_data[i];
         }
@@ -147,7 +146,7 @@ for (uint i = 0; i <= count_robots - 1; i++) {
 
 sqlite3_free_table(pResSQL);
 #ifdef IS_DEBUG
-    colorPrintf(ConsoleColor(ConsoleColor::yellow),"MakeChoice result:\n%s\n\n", pRes -> robot_uid);
+    colorPrintf(ConsoleColor(ConsoleColor::yellow),"MakeChoice result:\n%s\n\n", *pRes != NULL ? pRes -> robot_uid : "NULL");
 #endif
 return pRes;
 }
