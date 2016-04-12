@@ -5,7 +5,6 @@
 #include <stdarg.h>
 #include <sqlite3.h>
 #include <string>
-
 #include "stringC11.h"
 
 /* RCML */
@@ -58,7 +57,7 @@ int AvgChoiceModule::startProgram(int uniq_index) { return 0; }
 const DBRobotData *AvgChoiceModule::makeChoise(const DBFunctionData** function_data, uint count_functions,
                                             const DBRobotData** robots_data, uint count_robots) {
 
-string psqlText =
+string pSqlText =
 "select uid\n"
 "  from robot_uids ru\n"
 "  join\n"
@@ -72,52 +71,61 @@ string psqlText =
 "                      where f.id = fc.function_id\n"
 "                        and ( %FUNCS_CLAUSE%\n"
 "                             )\n"
-"                     ) %ROBOTS_CLAUSE%\n"
+"                     ) %ROBOTS_CLAUSE%"
 "        group by fc.robot_id\n"
 "        order by avg_time asc\n"
 "        limit 1\n"
 "       ) b\n"
 "    on (ru.id = b.robot_id)\n";
 
-string sTmp = "";
+string sFuncs = "";
 for (uint i = 0; i <= count_functions-1; i++) {
     if (i >= 1) {
-        sTmp += "or ";
+        sFuncs += "or ";
     }
-     sTmp += "(f.name = '" + (string)(function_data[i] -> name) + "'\n"
-             " and f.position = " + to_string(function_data[i] -> position) + "\n"
-             " and c.hash = '" + (string)(function_data[i] -> context_hash) + "')\n";
+     sFuncs += "(f.name = '" + (string)(function_data[i] -> name) + "'\n"
+               " and f.position = " + to_string(function_data[i] -> position) + "\n"
+               " and c.hash = '" + (string)(function_data[i] -> context_hash) + "')\n";
 }
-sTmp = sTmp.substr(0, sTmp.length()-1);
-psqlText.replace(psqlText.find("%FUNCS_CLAUSE%"),14,sTmp);
+sFuncs = sFuncs.substr(0, sFuncs.length()-1);
+pSqlText.replace(pSqlText.find("%FUNCS_CLAUSE%"),14,sFuncs);
 
-sTmp = (string)"";
 if (count_robots) {
-    bool havenulluid = false;
-    for (uint i = 0; i <= count_robots - 1; i++) {
+    string sRobotsClause =
+    "\n and exists (select 1\n"
+    "                 from robot_uids ru\n"
+    "                 join sources s\n"
+    "                   on (ru.source_id = s.id)\n"
+    "	             where ru.id = fc.robot_id\n"
+    "		       and (   %ROBOT_UIDS%\n"
+    "                       or %SOURCE_HASHES%\n"
+    "                       )\n";    
+string sUids = "";
+string sHashes = "";
+    for (uint i = 0; i < count_robots; i++) {
         if (   *robots_data[i] -> robot_uid == 0
             or *robots_data[i] -> robot_uid == NULL
             or (string)(robots_data[i] -> robot_uid) == (string)"") {
-            havenulluid = true;
-            break;
+           sHashes += "'" + (string)(robots_data[i] -> module_data -> hash) + "',";
         } else {
-          sTmp += (string)"'" + (string)(robots_data[i] -> robot_uid) + "',";
+          sUids += "'" + (string)(robots_data[i] -> robot_uid) + "',";
         }
     }
-    if (not havenulluid) {
-        string sTmp2 =
-        "\n and exists (select 1 from robot_uids ru\n"
-        "		where ru.id = fc.robot_id\n"
-        "		and ru.uid in (%IN_CLAUSE%))\n";
-        sTmp = sTmp.substr(0,sTmp.length()-1);
-        sTmp2.replace(sTmp2.find("%IN_CLAUSE%"),11,sTmp);
-        sTmp2 = sTmp2.substr(0, sTmp2.length()-1);
-        psqlText.replace(psqlText.find("%ROBOTS_CLAUSE%"),15,sTmp2);
-    } else {
-      psqlText.replace(psqlText.find("%ROBOTS_CLAUSE%"),15,"");
+    if (sUids == (string)"") {
+        sUids = "1=0";
+    } else {    
+      sUids = "ru.uid in (" + sUids.substr(0,sUids.length()-1) + ")";
     }
+    if (sHashes == (string)"") {
+        sHashes = "1=0";
+    } else {    
+      sHashes = "s.hash in (" + sHashes.substr(0,sHashes.length()-1) + ")";
+    }
+    sRobotsClause.replace(sRobotsClause.find("%ROBOT_UIDS%"),12,sUids);
+    sRobotsClause.replace(sRobotsClause.find("%SOURCE_HASHES%"),15,sHashes);
+    pSqlText.replace(pSqlText.find("%ROBOTS_CLAUSE%"),15,sRobotsClause);
 } else {
-  psqlText.replace(psqlText.find("%ROBOTS_CLAUSE%"),15,"");
+  pSqlText.replace(pSqlText.find("%ROBOTS_CLAUSE%"),15,"");
 }
 #ifdef IS_DEBUG
     colorPrintf(ConsoleColor(ConsoleColor::yellow),"SQL statement:\n%s\n\n", psqlText.c_str());
@@ -127,18 +135,18 @@ int nRow = 0;
 int nCol = 0;
 char *zErrMsg = 0;
 char **pResSQL = 0;
-if( sqlite3_get_table(db, psqlText.c_str(), &pResSQL, &nRow, &nCol, &zErrMsg) != SQLITE_OK ){
+if( sqlite3_get_table(db, pSqlText.c_str(), &pResSQL, &nRow, &nCol, &zErrMsg) != SQLITE_OK ){
    colorPrintf(ConsoleColor(ConsoleColor::red),"SQL error:\n%s\n\n", zErrMsg);
    sqlite3_free(zErrMsg);
    return NULL;
 }
 #ifdef IS_DEBUG
-    colorPrintf(ConsoleColor(ConsoleColor::yellow),"SQL result:\n%s\n\n", pResSQL[1]);    
+    colorPrintf(ConsoleColor(ConsoleColor::yellow),"SQL result:\n%s\n\n", nCol > 0 ? pResSQL[1] : "NULL");
 #endif
 
 const DBRobotData *pRes = NULL;
 if (nCol > 0) {
-for (uint i = 0; i <= count_robots - 1; i++) {
+for (uint i = 0; i < count_robots; i++) {
     if ( (string)(robots_data[i] -> robot_uid) == (string)pResSQL[1]) {
         pRes = robots_data[i];
         }
@@ -147,7 +155,7 @@ for (uint i = 0; i <= count_robots - 1; i++) {
 
 sqlite3_free_table(pResSQL);
 #ifdef IS_DEBUG
-    colorPrintf(ConsoleColor(ConsoleColor::yellow),"MakeChoice result:\n%s\n\n", pRes -> robot_uid);
+    colorPrintf(ConsoleColor(ConsoleColor::yellow),"MakeChoice result:\n%s\n\n", *pRes != NULL ? pRes -> robot_uid : "NULL");
 #endif
 return pRes;
 }
