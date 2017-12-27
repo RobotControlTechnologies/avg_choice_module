@@ -4,6 +4,15 @@
 
 using namespace std;
 
+struct ResultData {
+  std::string iid;
+  std::string uid;
+  double averageTime;
+  bool success;
+  ResultData(std::string iid, std::string uid, double averageTime, bool success)
+    : iid(iid), uid(uid), averageTime(averageTime), success(success) {};
+};
+
 class AvgChoiceModule : public ChoiceModule {
   colorPrintfModuleVA_t *colorPrintf_p;
   ModuleInfo *mi;
@@ -19,11 +28,15 @@ class AvgChoiceModule : public ChoiceModule {
   void *writePC(unsigned int *buffer_length);
 
   // intepreter - devices
-  int init();
+  #if MODULE_API_VERSION == 102
+    virtual int init(initCallback_t& initCallback);
+  #else
+    int init();
+  #endif
   void final();
 
   // db
-  sqlite3 *db;
+  std::string db_path;
 
   // intepreter - program & lib
   int readPC(int pc_index, void *buffer, unsigned int buffer_length);
