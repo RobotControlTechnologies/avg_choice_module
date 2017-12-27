@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 set(PROJECT avg_module)
 project(${PROJECT} LANGUAGES C CXX)
 
-set(API_VERSION 101)
+if(NOT API_VERSION)
+  message(SEND_ERROR "Please set API_VERSION")
+endif()
 
 if(NOT BUILD_NUMBER)
   message(SEND_ERROR "Please set BUILD_NUMBER")

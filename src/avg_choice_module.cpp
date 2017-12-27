@@ -44,7 +44,12 @@ void *AvgChoiceModule::writePC(unsigned int *buffer_length) {
   return NULL;
 }
 
-int AvgChoiceModule::init() {
+#if MODULE_API_VERSION == 102
+int AvgChoiceModule::init(initCallback_t& initCallback)
+#else
+int AvgChoiceModule::init()
+#endif
+{
   std::string config_path = "config.ini";
 
   CSimpleIniA ini;
