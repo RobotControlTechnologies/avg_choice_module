@@ -28,7 +28,11 @@ class AvgChoiceModule : public ChoiceModule {
   void *writePC(unsigned int *buffer_length);
 
   // intepreter - devices
-  int init();
+  #if MODULE_API_VERSION == 102
+    virtual int init(initCallback_t& initCallback);
+  #else
+    int init();
+  #endif
   void final();
 
   // db
